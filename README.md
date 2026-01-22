@@ -1,73 +1,80 @@
-# React + TypeScript + Vite
+#  Cocktail Search App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React application for searching cocktails by ingredient, browsing results with pagination, and filtering by alcoholic content with efficient data fetching and caching.
 
-Currently, two official plugins are available:
+## How to Run the Project
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
 
-## React Compiler
+* Node.js **v18+**
+* npm or yarn
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Steps
 
-## Expanding the ESLint configuration
+```bash
+# Install dependencies
+npm install
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+http://localhost:5173
+```
+
+## Architecture Decisions
+
+### 1. **Separation of Concerns**
+
+* **Search results (`DrinkSummary`)** are stored separately from
+* **Drink details (`DrinkDetail`)**, which are cached in a `detailsMap`
+
+This avoids refetching details unnecessarily and keeps the initial search fast.
+
+### 2. **Filter → Paginate → Fetch (Strict Order)**
+
+* Filtering is applied **before** pagination
+* Pagination determines what is rendered
+* Drink details are fetched **only for visible (and next-page) items**
+
+This ensures data fetching always aligns with what the user sees.
+
+### 3. **Optimized Network Usage**
+
+* Uses a concurrency-limited fetch utility to avoid API overload and due to the rate limiting on the API
+* Prefetches details for the next page to improve perceived performance
+* Cached details persist across pagination and filter changes
+
+### 4. **UI Safety**
+
+* Filters are disabled until visible drink details are loaded
+* UI never blocks rendering while waiting for non-critical data
+
+
+## Trade-offs & Assumptions
+
+* Filtering by alcoholic content depends on drink **details**, not summaries
+* Until details are loaded, drinks are temporarily allowed through filters
+* Pagination is client-side for simplicity (API returns full result sets)
+* No global state library (e.g. Redux) used since React state is sufficient at this scale
+
+## What I’d Improve With More Time
+
+* **Retry + exponential backoff** for failed API calls
+* **Better loading states** (skeletons instead of text)
+* **Accessibility improvements** (ARIA states for loading & filters)
+* **E2E tests** for filter + pagination edge cases
+
+## Summary
+
+This project prioritizes:
+
+* Correct data flow
+* Predictable UI behavior
+* Efficient network usage
+* Maintainable architecture
+
+The structure is intentionally scalable and ready for future enhancements without major refactors.
